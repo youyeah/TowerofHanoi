@@ -305,7 +305,7 @@ class Hanoi < Gosu::Window
             @game_time = (Time.now - @start_time).to_i
 
             # when clear
-            if @rings.ringPositions == [0,0,0,0,0,1] || @rings.ringPositions == [2,2,2,2,2,2]
+            if @rings.ringPositions == [1,1,1,1,1,1] || @rings.ringPositions == [2,2,2,2,2,2]
                 @clear_time = @game_time if @clear_time == -1   # first clear time
                 @clear_count = @count if @clear_count == -1
             end
