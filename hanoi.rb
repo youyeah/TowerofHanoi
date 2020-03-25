@@ -8,7 +8,7 @@ class Cursor
         @window = window
         @x = @window.mouse_x
         @y = @window.mouse_y
-        @now_touching = -1       # [0: left, 1: center, 2: right, -1: non]
+        @now_touching = -1       # 触ってる台座[0: left, 1: center, 2: right, -1: non]
         @image = Gosu::Image.new('media/CursorHand.png')
     end
 
@@ -75,12 +75,12 @@ class Ring
 
     # Ring drawing
     def draw(font)
-        drawRing0(font)   # XL
-        drawRing1(font)   # L
-        drawRing2(font)   # M
-        drawRing3(font)   # S
-        drawRing4(font)   # XS
-        drawRing5(font)
+        drawRing0(font)   # XXL
+        drawRing1(font)   # XL
+        drawRing2(font)   # L
+        drawRing3(font)   # M
+        drawRing4(font)   # S
+        drawRing5(font)   # XS
     end
 
     def drawRing5(font)
