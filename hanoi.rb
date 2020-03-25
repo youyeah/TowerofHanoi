@@ -1,7 +1,6 @@
 require "gosu"
 require "net/http"
 require "json"
-require "yaml"
 
 class Cursor
     attr_reader :x, :y, :now_touching
@@ -198,8 +197,8 @@ end
 
 class Scoreboard
     def initialize
-        data = open('api.yml', 'r') { |f| YAML.load(f) }
-        @uri = URI.parse(data[0])
+        data = File.read("api.txt")
+        @uri = URI.parse(data)
         @http = Net::HTTP.new(@uri.host, @uri.port)
         @http.use_ssl = @uri.scheme === "https"
     end
@@ -365,7 +364,7 @@ class Hanoi < Gosu::Window
                     @font25.draw_text("count #{@rankboard[t]["count"]}, time #{@rankboard[t]["time"]}sec", 240, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::WHITE)
                 end
             end
-            @font25.draw_text("Your record .. count:#{@count}, Time: #{@game_time}", 120, 350, 1, 1.0, 1.0, Gosu::Color::WHITE)
+            @font25.draw_text("Your record .. count:#{@count}, Time: #{@clear_time}", 120, 350, 1, 1.0, 1.0, Gosu::Color::WHITE)
         end
         # @font15.draw_text("x:#{self.mouse_x}\ny:#{self.mouse_y}", 50, 50, 1, 1.0, 1.0, Gosu::Color::WHITE)
         # draw MouseCursor
