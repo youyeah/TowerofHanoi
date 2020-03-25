@@ -1,4 +1,7 @@
 require "gosu"
+require "net/http"
+require "json"
+require "yaml"
 
 class Cursor
     attr_reader :x, :y, :now_touching
@@ -193,6 +196,27 @@ class Ring
 
 end
 
+class Scoreboard
+    def initialize
+        data = open('api.yml', 'r') { |f| YAML.load(f) }
+        @uri = URI.parse(data[0])
+        @http = Net::HTTP.new(@uri.host, @uri.port)
+        @http.use_ssl = @uri.scheme === "https"
+    end
+
+    def get
+        response = @http.get(@uri.path)
+        return JSON.parse(response.body)["data"]
+    end
+
+    def post(count, time, name)
+        params = {count: count, time: time, scored_by: name}
+        headers = { "Content-Type" => "application/json" }
+        response = @http.post(@uri.path, params.to_json, headers)
+        return JSON.parse(response.body)["status"]
+    end
+end
+
 class Hanoi < Gosu::Window
     def initialize
         super 600, 400
@@ -229,6 +253,15 @@ class Hanoi < Gosu::Window
         # font
         @font15 = Gosu::Font.new(15)
         @font25 = Gosu::Font.new(25)
+
+        # show and post online scoreboard
+        @scoreboard = Scoreboard.new
+        @rankboard = @scoreboard.get
+
+        # set username
+        file = File.read("username.txt")
+        file_string = file.to_s
+        @username = file_string.split("=").delete_at(1)
     end
     
     def init_score
@@ -278,15 +311,16 @@ class Hanoi < Gosu::Window
                 @clear_count = @count if @clear_count == -1
             end
 
-            # reset
+            # to reset
             if @cursor.touch?(3,5,36,14) && (button_down? Gosu::MsLeft)
                 @rings.ringPositions = [0, 0, 0, 0, 0, 0]
                 @scene = :start
             end
 
-            # ranking
+            # to ranking
             if @cursor.touch?(250, 370, 355, 395) && (button_down? Gosu::MsLeft)
-                
+                @scoreboard.post(@clear_count, @clear_time, @username)
+                @rankboard = @scoreboard.get
                 @scene = :ranking
             end
         end
@@ -325,9 +359,15 @@ class Hanoi < Gosu::Window
             @font15.draw_text("count:#{@count}", 450, 60, 1, 1.0, 1.0, Gosu::Color::WHITE)
             @font15.draw_text("reset", 5, 2, 1, 1.0, 1.0, Gosu::Color::WHITE)
         when :ranking
-            @font15.draw_text("Time: #{@game_time}, count:#{@count}", 200, 250, 1, 1.0, 1.0, Gosu::Color::WHITE)
+            10.times do |t|
+                if @rankboard[t]
+                    @font25.draw_text("#{t+1}: #{@rankboard[t]["scored_by"]}", 100, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::WHITE)
+                    @font25.draw_text("count #{@rankboard[t]["count"]}, time #{@rankboard[t]["time"]}sec", 240, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::WHITE)
+                end
+            end
+            @font25.draw_text("Your record .. count:#{@count}, Time: #{@game_time}", 120, 350, 1, 1.0, 1.0, Gosu::Color::WHITE)
         end
-        @font15.draw_text("x:#{self.mouse_x}\ny:#{self.mouse_y}", 50, 50, 1, 1.0, 1.0, Gosu::Color::WHITE)
+        # @font15.draw_text("x:#{self.mouse_x}\ny:#{self.mouse_y}", 50, 50, 1, 1.0, 1.0, Gosu::Color::WHITE)
         # draw MouseCursor
         @cursor.draw
 
