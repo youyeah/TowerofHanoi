@@ -1,0 +1,6 @@
+/.bundle/
+/gemfile/
+Gemfile.lock
+icon.ico
+/media/
+/vendor/
