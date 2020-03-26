@@ -394,7 +394,7 @@ class Hanoi < Gosu::Window
             end
 
             # to ranking
-            if @cursor.touch?(250, 370, 355, 395) && (button_down? Gosu::MsLeft)
+            if @cursor.touch?(250, 370, 355, 395) && (button_down? Gosu::MsLeft) && @clear_time != -1
                 @scoreboard.post(@clear_count, @clear_time, @username)
                 @rankboard = @scoreboard.get
                 @scene = :ranking
@@ -442,7 +442,7 @@ class Hanoi < Gosu::Window
             end
 
             # to ranking
-            if @cursor.touch?(250, 370, 355, 395) && (button_down? Gosu::MsLeft)
+            if @cursor.touch?(250, 370, 355, 395) && (button_down? Gosu::MsLeft) && @clear_time != -1
                 # @scoreboard.post(@clear_count, @clear_time, @username)
                 # @rankboard = @scoreboard.get
                 @scene = :ranking
