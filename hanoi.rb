@@ -85,8 +85,8 @@ class Ring
 
     def drawRing5(font)
         if @ring5
-            x = @window.mouse_x
-            y = @window.mouse_y
+            x = @window.mouse_x - (RingWidth - WidthDiff*10)/2
+            y = @window.mouse_y - RingHeight/2
         else
             x = 100 + @ringPositions[5] * 150 + WidthDiff*5
             y = 270
@@ -101,8 +101,8 @@ class Ring
     end
     def drawRing4(font)
         if @ring4
-            x = @window.mouse_x
-            y = @window.mouse_y
+            x = @window.mouse_x - (RingWidth - WidthDiff*8)/2
+            y = @window.mouse_y - RingHeight/2
         else
             x = 100 + @ringPositions[4] * 150 + WidthDiff*4
             y = 270
@@ -117,8 +117,8 @@ class Ring
 
     def drawRing3(font)
         if @ring3
-            x = @window.mouse_x
-            y = @window.mouse_y
+            x = @window.mouse_x - (RingWidth - WidthDiff*6)/2
+            y = @window.mouse_y - RingHeight/2
         else
             x = 100 + @ringPositions[3] * 150 + WidthDiff*3
             y = 270
@@ -132,8 +132,8 @@ class Ring
 
     def drawRing2(font)
         if @ring2
-            x = @window.mouse_x
-            y = @window.mouse_y
+            x = @window.mouse_x - (RingWidth - WidthDiff*4)/2
+            y = @window.mouse_y - RingHeight/2
         else
             x = 100 + @ringPositions[2] * 150 + WidthDiff*2
             y = @ringPositions[2] == @ringPositions[0] ? (@ringPositions[2] == @ringPositions[1] ? 270 - RingHeight*2 : 270 - RingHeight) : (@ringPositions[2] == @ringPositions[1] ? 270 - RingHeight : 270)
@@ -143,8 +143,8 @@ class Ring
     end
     def drawRing1(font)
         if @ring1
-            x = @window.mouse_x
-            y = @window.mouse_y
+            x = @window.mouse_x - (RingWidth - WidthDiff*2)/2
+            y = @window.mouse_y - RingHeight/2
         else
             x = 100 + @ringPositions[1] * 150 + WidthDiff
             y = @ringPositions[1] == @ringPositions[0] ? 270 - RingHeight : 270
@@ -154,8 +154,8 @@ class Ring
     end
     def drawRing0(font)
         if @ring0
-            x = @window.mouse_x
-            y = @window.mouse_y
+            x = @window.mouse_x - RingWidth/2
+            y = @window.mouse_y - RingHeight/2
         else
             x = 100 + @ringPositions[0] * 150
             y = 270
@@ -263,7 +263,8 @@ class Hanoi < Gosu::Window
         @username = file_string.split("=").delete_at(1)
     end
     
-    def init_score
+    def init_game
+        @rings.ringPositions = [0, 0, 0, 0, 0, 0]
         @count = 0
         @start_time = @game_time = Time.now
         @clear_time = @clear_count = -1
@@ -276,8 +277,12 @@ class Hanoi < Gosu::Window
         case @scene
         when :start
             if @cursor.touch?(140, 305, 450, 365) && (button_down? Gosu::MsLeft)
-                init_score
+                init_game
                 @scene = :game
+            end
+            if @cursor.touch?(430, 12, 580, 30) && (button_down? Gosu::MsLeft)
+                @rankboard = @scoreboard.get
+                @scene = :ranking
             end
             # 140 ,250,   450, 310
         when :game
@@ -312,7 +317,6 @@ class Hanoi < Gosu::Window
 
             # to reset
             if @cursor.touch?(3,5,36,14) && (button_down? Gosu::MsLeft)
-                @rings.ringPositions = [0, 0, 0, 0, 0, 0]
                 @scene = :start
             end
 
@@ -321,6 +325,11 @@ class Hanoi < Gosu::Window
                 @scoreboard.post(@clear_count, @clear_time, @username)
                 @rankboard = @scoreboard.get
                 @scene = :ranking
+            end
+        when :ranking
+            # reset
+            if @cursor.touch?(3,5,36,14) && (button_down? Gosu::MsLeft)
+                @scene = :start
             end
         end
         
@@ -334,6 +343,12 @@ class Hanoi < Gosu::Window
         
         case @scene
         when :start
+            if @cursor.touch?(430, 12, 580, 30)
+                Gosu::draw_rect(430, 12, 148, 20, Gosu::Color.rgba(119, 136, 153, 255))
+            else
+                Gosu::draw_rect(430, 12, 148, 20, Gosu::Color.rgba(119, 136, 153, 100))
+            end
+            @font25.draw_text("RANK BOARD", 430, 10, 1, 1.0, 1.0, Gosu::Color::BLACK)
             @start_light.draw(-40, -15, 0) if @cursor.touch?(140, 305, 450, 365)
             @logo.draw(25, 130, 0)
             @start_btn.draw(150, 315, 0)
@@ -356,15 +371,29 @@ class Hanoi < Gosu::Window
             end
             @font15.draw_text("Time: #{@game_time}", 450, 30, 1, 1.0, 1.0, Gosu::Color::WHITE)
             @font15.draw_text("count:#{@count}", 450, 60, 1, 1.0, 1.0, Gosu::Color::WHITE)
+            if @cursor.touch?(3,5,36,14)
+                Gosu::draw_rect(3, 5, 34, 10, Gosu::Color.rgba(119, 136, 153, 255))
+            else
+                Gosu::draw_rect(3, 5, 34, 10, Gosu::Color.rgba(119, 136, 153, 100))
+            end
             @font15.draw_text("reset", 5, 2, 1, 1.0, 1.0, Gosu::Color::WHITE)
         when :ranking
             10.times do |t|
+                Gosu::draw_rect(95, 61 + t*25, 400, 24, Gosu::Color.rgba(180, 180, 180, 80))
+                t == 0 ? ranking = "1st" : t == 1 ? ranking = "2nd" : t == 2 ? ranking = "3rd" : ranking = (t+1).to_s + "th"
+                @font25.draw_text(ranking, 100, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::BLACK)
                 if @rankboard[t]
-                    @font25.draw_text("#{t+1}: #{@rankboard[t]["scored_by"]}", 100, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::WHITE)
-                    @font25.draw_text("count #{@rankboard[t]["count"]}, time #{@rankboard[t]["time"]}sec", 240, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::WHITE)
+                    @font25.draw_text("#{@rankboard[t]["scored_by"]}", 150, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::BLACK)
+                    @font25.draw_text("count:#{@rankboard[t]["count"]}, time:#{@rankboard[t]["time"]}sec", 265, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::BLACK)
                 end
             end
-            @font25.draw_text("Your record .. count:#{@count}, Time: #{@clear_time}", 120, 350, 1, 1.0, 1.0, Gosu::Color::WHITE)
+            if @cursor.touch?(3,5,36,14)
+                Gosu::draw_rect(3, 5, 34, 10, Gosu::Color.rgba(119, 136, 153, 255))
+            else
+                Gosu::draw_rect(3, 5, 34, 10, Gosu::Color.rgba(119, 136, 153, 100))
+            end
+            @font15.draw_text("reset", 5, 2, 1, 1.0, 1.0, Gosu::Color::WHITE)
+            @font25.draw_text("Your record .. count:#{@count}, Time: #{@clear_time}", 120, 350, 1, 1.0, 1.0, Gosu::Color::WHITE) unless @clear_count == -1
         end
         # @font15.draw_text("x:#{self.mouse_x}\ny:#{self.mouse_y}", 50, 50, 1, 1.0, 1.0, Gosu::Color::WHITE)
         # draw MouseCursor
