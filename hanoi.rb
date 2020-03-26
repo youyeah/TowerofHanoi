@@ -37,7 +37,7 @@ end
 
 class Table
     NeedleWidth = 10
-    NeedleHeight= 140
+    NeedleHeight= 150
     TableWidth  = 100
     TableHeight = 10
 
@@ -48,7 +48,7 @@ class Table
 
     def draw
         # draw Needle
-        Gosu::draw_rect(@x+45, @y+50, NeedleWidth, NeedleHeight, Gosu::Color::WHITE)
+        Gosu::draw_rect(@x+45, @y+40, NeedleWidth, NeedleHeight, Gosu::Color::WHITE)
         # draw Table
         Gosu::draw_rect(@x, @y+190, TableWidth, TableHeight, Gosu::Color::WHITE)
     end
@@ -114,7 +114,6 @@ class Ring
         Gosu::draw_rect(x, y, RingWidth - WidthDiff*8, RingHeight, Gosu::Color::YELLOW)
         font.draw_text("2", x+25, y+3, 1, 1.0, 1.0, Gosu::Color::BLACK)
     end
-
     def drawRing3(font)
         if @ring3
             x = @window.mouse_x - (RingWidth - WidthDiff*6)/2
@@ -129,7 +128,6 @@ class Ring
         Gosu::draw_rect(x, y, RingWidth - WidthDiff*6, RingHeight, Gosu::Color::AQUA)
         font.draw_text("3", x+30, y+3, 1, 1.0, 1.0, Gosu::Color::BLACK)
     end
-
     def drawRing2(font)
         if @ring2
             x = @window.mouse_x - (RingWidth - WidthDiff*4)/2
@@ -195,6 +193,74 @@ class Ring
 
 end
 
+class RandomRing
+    attr_accessor :top_rings, :ring_pos, :touch
+    RingHeight = 20
+    RingWidth  = 100
+    WidthDiff  = 5
+    
+    def initialize(window)
+        #                   [刺さってる場所, 高さ] * 7
+        #                       大きい　←---→　小さい
+        @ring_pos   = [[2, 1], [0, 0], [0, 2], [0, 3], [0, 1], [2, 0], [1, 0]]
+        # 各台座の一番上のリングの大きさ
+        # 左、中、右
+        @top_rings   = [-1, -1, -1]
+        @window     = window
+        @ring_colors = [Gosu::Color::RED, Gosu::Color::FUCHSIA, Gosu::Color::GREEN, Gosu::Color::AQUA, Gosu::Color::YELLOW, Gosu::Color::GRAY, Gosu::Color.rgba(127,255,212,255)]
+        @touch = -1
+    end
+
+    def update
+        # 刺さっている場所が一番高いリングの種類を@top_ringに保管
+        @top_rings   = [-1, -1, -1]
+        left =  [-1, -1]    # [種類, 高さ]
+        center = [-1, -1]
+        right = [-1, -1]
+        @ring_pos.each_with_index do |ring, i|
+            case ring[0]
+            when 0
+                if left[1] < ring[1]
+                    left[0] = i
+                    left[1] = ring[1]
+                end
+            when 1
+                if center[1] < ring[1]
+                    center[0] = i
+                    center[1] = ring[1]
+                end
+            when 2
+                if right[1] < ring[1]
+                    right[0] = i
+                    right[1] = ring[1]
+                end
+            end
+        end
+        @top_rings[0] = left[0]
+        @top_rings[1] = center[0]
+        @top_rings[2] = right[0]
+    end
+
+    def draw(font)
+        # リングと数字の描画
+        @ring_pos.each_with_index do |ring,i|
+            if  @touch == i
+                x = @window.mouse_x
+                y = @window.mouse_y
+            else
+                x = 100 + ring[0] * 150 + WidthDiff*i
+                y = 270 - ring[1] * RingHeight
+            end
+            Gosu::draw_rect(x, y, RingWidth - WidthDiff*(2*i), RingHeight, @ring_colors[i])
+            font.draw_text("#{7-i}", x+(45-5*i), y+3, 1, 1.0, 1.0, Gosu::Color::BLACK)
+        end
+    end
+
+    def touchRing(num)
+        @touch = num
+    end
+end
+
 class Scoreboard
     def initialize
         data = File.read("api.txt")
@@ -249,6 +315,9 @@ class Hanoi < Gosu::Window
         # init Rings
         @rings = Ring.new(self)
 
+        # init RandomRings
+        @random_rings = RandomRing.new(self)
+
         # font
         @font15 = Gosu::Font.new(15)
         @font25 = Gosu::Font.new(25)
@@ -284,6 +353,10 @@ class Hanoi < Gosu::Window
                 @rankboard = @scoreboard.get
                 @scene = :ranking
             end
+
+            if button_down? Gosu::KbSpace
+                @scene = :random_game
+            end
             # 140 ,250,   450, 310
         when :game
                 # リングをつかむ時
@@ -295,7 +368,7 @@ class Hanoi < Gosu::Window
             elsif @is_hold_ring && !(button_down? Gosu::MsLeft) # リングを放すとき
                 if @cursor.now_touching > -1    # カーソルがどれかの針を示している
                     unless @now_have < @rings.topRings[@cursor.now_touching]    # 持っているリングより小さい奴の上に乗せられない
-                        @count += 1 unless @rings.ringPositions[@rings.topRings[@was_placed]] == @cursor.now_touching
+                        @count += 1 if @rings.ringPositions[@rings.topRings[@was_placed]] != @cursor.now_touching && @clear_count == -1
                         @rings.ringPositions[@rings.topRings[@was_placed]] = @cursor.now_touching
                     end
                 end
@@ -324,6 +397,54 @@ class Hanoi < Gosu::Window
             if @cursor.touch?(250, 370, 355, 395) && (button_down? Gosu::MsLeft)
                 @scoreboard.post(@clear_count, @clear_time, @username)
                 @rankboard = @scoreboard.get
+                @scene = :ranking
+            end
+        when :random_game
+            # リングをつかむ
+            if (button_down? Gosu::MsLeft) && @random_rings.top_rings[@cursor.now_touching] > -1 && !@is_hold_ring && @cursor.now_touching != -1
+                @random_rings.touchRing(@random_rings.top_rings[@cursor.now_touching])
+                @is_hold_ring = true
+                @was_placed = @cursor.now_touching
+                @now_have = @random_rings.top_rings[@cursor.now_touching]
+            elsif @is_hold_ring && !(button_down? Gosu::MsLeft) # リングを放すとき
+                if @cursor.now_touching > -1    # カーソルがどれかの針を示している
+                    # 持っているリングより小さい奴の上に乗せられない && 元あった場所と今選択している場所が違う
+                    if @now_have > @random_rings.top_rings[@cursor.now_touching] && @was_placed !=  @cursor.now_touching
+                        # 移動先にリングがなければ、高さ０
+                        if @random_rings.top_rings[@cursor.now_touching] == -1
+                             # ring_posには[場所]と[高さ]が入る
+                            @random_rings.ring_pos[@now_have] = [@cursor.now_touching, 0]
+                        else。
+                            # 移動先にリングがあれば、高さはカーソルがある場所の針に刺さっているリングの
+                            @random_rings.ring_pos[@now_have] = [@cursor.now_touching, @random_rings.ring_pos[@random_rings.top_rings[@cursor.now_touching]][1]+1]
+                        end
+                        @count += 1 if @clear_count == -1
+                    end
+                end
+                @random_rings.touchRing(-1)
+                @is_hold_ring = false
+                @was_placed = -1
+                @now_have = -1
+            end
+
+            @random_rings.update
+            @game_time = (Time.now - @start_time).to_i
+
+            # if clear
+            if @random_rings.ring_pos == [0,0,0,0,0,0,0] || @random_rings.ring_pos == [1,1,1,1,1,1,1] || @random_rings.ring_pos == [2,2,2,2,2,2,2]
+                @clear_time = @game_time if @clear_time == -1   # first clear time
+                @clear_count = @count if @clear_count == -1
+            end
+
+            # if reset
+            if @cursor.touch?(3,5,36,14) && (button_down? Gosu::MsLeft)
+                @scene = :start
+            end
+
+            # to ranking
+            if @cursor.touch?(250, 370, 355, 395) && (button_down? Gosu::MsLeft)
+                # @scoreboard.post(@clear_count, @clear_time, @username)
+                # @rankboard = @scoreboard.get
                 @scene = :ranking
             end
         when :ranking
@@ -377,6 +498,12 @@ class Hanoi < Gosu::Window
                 Gosu::draw_rect(3, 5, 34, 10, Gosu::Color.rgba(119, 136, 153, 100))
             end
             @font15.draw_text("reset", 5, 2, 1, 1.0, 1.0, Gosu::Color::WHITE)
+        when :random_game
+            # @table.draw
+            @tables.map{|table| table.draw }
+    
+            # Rings draw
+            @random_rings.draw(@font15)
         when :ranking
             10.times do |t|
                 Gosu::draw_rect(95, 61 + t*25, 400, 24, Gosu::Color.rgba(180, 180, 180, 80))
@@ -396,6 +523,8 @@ class Hanoi < Gosu::Window
             @font25.draw_text("Your record .. count:#{@count}, Time: #{@clear_time}", 120, 350, 1, 1.0, 1.0, Gosu::Color::WHITE) unless @clear_count == -1
         end
         # @font15.draw_text("x:#{self.mouse_x}\ny:#{self.mouse_y}", 50, 50, 1, 1.0, 1.0, Gosu::Color::WHITE)
+        # @font15.draw_text("now_have#{@now_have}", 50, 50, 1, 1.0, 1.0, Gosu::Color::WHITE)
+        # @font15.draw_text("top_rings:#{@random_rings.top_rings}", 50, 70, 1, 1.0, 1.0, Gosu::Color::WHITE)
         # draw MouseCursor
         @cursor.draw
 
