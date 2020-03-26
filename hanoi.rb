@@ -334,6 +334,7 @@ class Hanoi < Gosu::Window
     
     def init_game
         @rings.ringPositions = [0, 0, 0, 0, 0, 0]
+        @random_rings.ring_pos = @ring_pos   = [[2, 1], [0, 0], [0, 2], [0, 3], [0, 1], [2, 0], [1, 0]]
         @count = 0
         @start_time = @game_time = Time.now
         @clear_time = @clear_count = -1
@@ -355,9 +356,9 @@ class Hanoi < Gosu::Window
             end
 
             if button_down? Gosu::KbSpace
+                init_game
                 @scene = :random_game
             end
-            # 140 ,250,   450, 310
         when :game
                 # リングをつかむ時
             if (button_down? Gosu::MsLeft) && @rings.topRings[@cursor.now_touching] > -1 && !@is_hold_ring && @cursor.now_touching != -1
@@ -414,7 +415,7 @@ class Hanoi < Gosu::Window
                         if @random_rings.top_rings[@cursor.now_touching] == -1
                              # ring_posには[場所]と[高さ]が入る
                             @random_rings.ring_pos[@now_have] = [@cursor.now_touching, 0]
-                        else。
+                        else
                             # 移動先にリングがあれば、高さはカーソルがある場所の針に刺さっているリングの
                             @random_rings.ring_pos[@now_have] = [@cursor.now_touching, @random_rings.ring_pos[@random_rings.top_rings[@cursor.now_touching]][1]+1]
                         end
@@ -431,7 +432,7 @@ class Hanoi < Gosu::Window
             @game_time = (Time.now - @start_time).to_i
 
             # if clear
-            if @random_rings.ring_pos == [0,0,0,0,0,0,0] || @random_rings.ring_pos == [1,1,1,1,1,1,1] || @random_rings.ring_pos == [2,2,2,2,2,2,2]
+            if @random_rings.ring_pos == [[2, 1], [0, 0], [0, 2], [0, 3], [0, 1], [2, 0], [2, 2]] || @random_rings.ring_pos == [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6]] || @random_rings.ring_pos == [[1,0],[1,1],[1,2],[1,3],[1,4],[1,5],[1,6]] || @random_rings.ring_pos == [[2,0],[2,1],[2,2],[2,3],[2,4],[2,5],[2,6]]
                 @clear_time = @game_time if @clear_time == -1   # first clear time
                 @clear_count = @count if @clear_count == -1
             end
@@ -445,16 +446,19 @@ class Hanoi < Gosu::Window
             if @cursor.touch?(250, 370, 355, 395) && (button_down? Gosu::MsLeft) && @clear_time != -1
                 # @scoreboard.post(@clear_count, @clear_time, @username)
                 # @rankboard = @scoreboard.get
-                @scene = :ranking
+                @scene = :random_ranking
             end
         when :ranking
             # reset
             if @cursor.touch?(3,5,36,14) && (button_down? Gosu::MsLeft)
                 @scene = :start
             end
+        when :random_ranking
+            #reset
+            if @cursor.touch?(3,5,36,14) && (button_down? Gosu::MsLeft)
+                @scene = :start
+            end
         end
-        
-
         # if push ESCAPE , close the window
         close if Gosu.button_down? Gosu::KbEscape
     end
@@ -499,11 +503,30 @@ class Hanoi < Gosu::Window
             end
             @font15.draw_text("reset", 5, 2, 1, 1.0, 1.0, Gosu::Color::WHITE)
         when :random_game
+            if @is_hold_ring && @cursor.now_touching > -1 && @cursor.now_touching != @was_placed
+                @will_light.draw(100+150*@cursor.now_touching, 100, 0)
+            end
+
             # @table.draw
             @tables.map{|table| table.draw }
     
             # Rings draw
             @random_rings.draw(@font15)
+
+            # cleared
+            if @clear_time != -1
+                @font15.draw_text("CLEAR TIME:#{@clear_time}", 255, 320, 1, 1.0, 1.0, Gosu::Color::WHITE)
+                @font15.draw_text("COUNT:#{@clear_count}", 270, 350, 1, 1.0, 1.0, Gosu::Color::WHITE)
+                @font15.draw_text("show RANKING", 253, 380, 1, 1.0, 1.0, Gosu::Color::WHITE)
+            end
+            @font15.draw_text("Time: #{@game_time}", 450, 30, 1, 1.0, 1.0, Gosu::Color::WHITE)
+            @font15.draw_text("count:#{@count}", 450, 60, 1, 1.0, 1.0, Gosu::Color::WHITE)
+            if @cursor.touch?(3,5,36,14)
+                Gosu::draw_rect(3, 5, 34, 10, Gosu::Color.rgba(119, 136, 153, 255))
+            else
+                Gosu::draw_rect(3, 5, 34, 10, Gosu::Color.rgba(119, 136, 153, 100))
+            end
+            @font15.draw_text("reset", 5, 2, 1, 1.0, 1.0, Gosu::Color::WHITE)
         when :ranking
             10.times do |t|
                 Gosu::draw_rect(95, 61 + t*25, 400, 24, Gosu::Color.rgba(180, 180, 180, 80))
@@ -513,6 +536,23 @@ class Hanoi < Gosu::Window
                     @font25.draw_text("#{@rankboard[t]["scored_by"]}", 150, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::BLACK)
                     @font25.draw_text("count:#{@rankboard[t]["count"]}, time:#{@rankboard[t]["time"]}sec", 265, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::BLACK)
                 end
+            end
+            if @cursor.touch?(3,5,36,14)
+                Gosu::draw_rect(3, 5, 34, 10, Gosu::Color.rgba(119, 136, 153, 255))
+            else
+                Gosu::draw_rect(3, 5, 34, 10, Gosu::Color.rgba(119, 136, 153, 100))
+            end
+            @font15.draw_text("reset", 5, 2, 1, 1.0, 1.0, Gosu::Color::WHITE)
+            @font25.draw_text("Your record .. count:#{@count}, Time: #{@clear_time}", 120, 350, 1, 1.0, 1.0, Gosu::Color::WHITE) unless @clear_count == -1
+        when :random_ranking
+            10.times do |t|
+                Gosu::draw_rect(95, 61 + t*25, 400, 24, Gosu::Color.rgba(180, 180, 180, 80))
+                t == 0 ? ranking = "1st" : t == 1 ? ranking = "2nd" : t == 2 ? ranking = "3rd" : ranking = (t+1).to_s + "th"
+                @font25.draw_text(ranking, 100, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::BLACK)
+                # if @rankboard[t]
+                #     @font25.draw_text("#{@rankboard[t]["scored_by"]}", 150, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::BLACK)
+                #     @font25.draw_text("count:#{@rankboard[t]["count"]}, time:#{@rankboard[t]["time"]}sec", 265, 60 + t*25, 1, 1.0, 1.0, Gosu::Color::BLACK)
+                # end
             end
             if @cursor.touch?(3,5,36,14)
                 Gosu::draw_rect(3, 5, 34, 10, Gosu::Color.rgba(119, 136, 153, 255))
